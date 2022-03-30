@@ -1,7 +1,8 @@
 # Rum ToDo Sample Application
 
-Very basic (no styling), but fully functioning, TodoMVC using Rum. Code design and benchmarks were used for thesis comparing
-ClojureScript libraries.
+Very basic (no styling), but fully functioning, TodoMVC using Rum. Possibly the
+only instance of a TodoMVC using just Rum's state control. Code design and
+benchmarks were used for survey paper comparing ClojureScript libraries.
 
 
 ### Development Build
