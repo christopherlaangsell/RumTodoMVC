@@ -28,11 +28,67 @@
   (let [id (swap! counter inc)]
     (swap! todos assoc id {:id id :title text :done false})))
 
+(def filt (atom :all))
 
 (defn benchmark1 []
   (swap! stopwatch assoc :start (new js/Date))
   (dotimes [_ 200]
     (add-todo "foo")))
+
+(defn benchmark2 [active]
+  (swap! stopwatch assoc :start (new js/Date))
+  (complete-all (pos? active))
+  (clear-done))
+
+
+(defn benchmark3 [active]
+  (swap! stopwatch assoc :start (new js/Date))
+  (dotimes [_ 200]
+    (add-todo "foo"))
+  (dotimes [_ 5]
+    (complete-all (pos? active)))
+  (clear-done)
+  (dotimes [_ 200]
+    (add-todo "foo")))
+
+
+(defn benchmark4 [active]
+  (swap! stopwatch assoc :start (new js/Date))
+  (complete-all (pos? active)))
+
+
+(defn benchmark5 [active]
+  (swap! stopwatch assoc :start (new js/Date))
+  (dotimes [_ 400]
+    (add-todo "bar")))
+
+(defn benchmark6 [active]
+  (swap! stopwatch assoc :start (new js/Date))
+  (complete-all (pos? active))
+  (clear-done))
+
+
+(defn benchmark7 [active]
+  (swap! stopwatch assoc :start (new js/Date))
+  (dotimes [_ 800]
+    (add-todo "bar")))
+
+(defn benchmark8 [active]
+  (swap! stopwatch assoc :start (new js/Date))
+  (doall (map toggle (take 400 (keys @todos)))))
+
+(defn benchmark9 [active]
+  (swap! stopwatch assoc :start (new js/Date))
+  (reset! filt :active)
+  (set! (.. js/document (getElementById "active") -checked) true))
+
+(defn benchmark10 [active]
+  (swap! stopwatch assoc :start (new js/Date))
+  (reset! filt :all)
+  (complete-all (pos? active))
+  (clear-done)
+  (set! (.. js/document (getElementById "all") -checked) true))
+
 
 (rum/defcs todo-input < (rum/local "" ::val)
   [state {:keys [title on-save on-stop id class placeholder]}]
@@ -81,15 +137,21 @@
   [{:keys [filt active done]}]
   (let [props-for (fn [name]
                     {:class (if (= name (rum/react filt) "selected")
-                              :on-click #(reset! filt name))})]
+                              :on-click #(reset! filt name))})
+        radio-buttons (fn [[id txt]]
+                        [:div {:key id}
+                         [:input {:name "filters" :type "radio"
+                                  :id id :value txt}]
+                         [:label {:for id} txt]])]
     [:div
      [:span#todo-count
       [:strong active] " " (case active 1 "item" "items") " left"]
      [:ul#filters
-      [:ul#filters
-       [:li [:a (props-for :all) "All"]]
-       [:li [:a (props-for :active) "Active"]]
-       [:li [:a (props-for :done) "Completed"]]]
+      [:div {:on-change (fn [e]
+                          (reset! filt (keyword (-> e .-target .-id))))}
+       (map radio-buttons [[:all "All"]
+                           [:active "Active"]
+                           [:done "Completed"]])]
       (when (pos? done)
         [:button#clear-completed {:on-click clear-done}
          "Clear completed " done])]]))
@@ -108,11 +170,9 @@
      (when @editing
        (todo-edit {:class "edit" :title title
                    :on-save #(save id %)
-                   :on-stop #(reset! editing false)}))
-     ]))
+                   :on-stop #(reset! editing false)}))]))
 
 
-(def filt (atom :all))
 
 (def did-update-mixin
   {:did-update
@@ -130,6 +190,16 @@
         active (- (count items) done)]
     [:div
      [:input {:type "button" :value "Benchmark 1" :on-click #(benchmark1)}]
+     [:input {:type "button" :value "Benchmark 2" :on-click #(benchmark2 active)}]
+     [:input {:type "button" :value "Benchmark 3" :on-click #(benchmark3 active)}]
+     [:input {:type "button" :value "Benchmark 4" :on-click #(benchmark4 active)}]
+     [:input {:type "button" :value "Benchmark 5" :on-click #(benchmark5 active)}]
+     [:input {:type "button" :value "Benchmark 6" :on-click #(benchmark6 active)}]
+     ;; [:input {:type "button" :value "Benchmark 7" :on-click #(benchmark7 active)}]
+     ;; [:input {:type "button" :value "Benchmark 8" :on-click #(benchmark8 active)}]
+     ;; [:input {:type "button" :value "Benchmark 9" :on-click #(benchmark9 active)}]
+     ;; [:input {:type "button" :value "Benchmark 10" :on-click #(benchmark10 active)}]
+
      [:div#message]
      [:section#todoapp
       [:header#header
